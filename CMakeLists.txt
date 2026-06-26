@@ -14,7 +14,7 @@ set(BUILD_GAMES    OFF CACHE BOOL "" FORCE)
 add_subdirectory(external/raylib)
 
 # AnimEngine: the animation library under test.
-add_subdirectory(external/AniEngine)
+add_subdirectory(external/AnimEngine)
 
 # ---- Demo executable ----
 add_executable(demo src/main.cpp)

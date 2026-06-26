@@ -1,5 +1,5 @@
-[submodule "external/AniEngine"]
-	path = external/AniEngine
+[submodule "external/AnimEngine"]
+	path = external/AnimEngine
 	url = git@github.com:WangSimiao2000/MiaoAnimEngine.git
 [submodule "external/raylib"]
 	path = external/raylib
