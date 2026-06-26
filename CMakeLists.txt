@@ -5,8 +5,21 @@ project(AniEngineDemo LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Pull in the AniEngine library (provided as a git submodule).
+# ---- Dependencies (provided as git submodules under external/) ----
+
+# raylib: used only as a visualization / verification tool for the demo.
+# Build just the library, skip its bundled examples/games to keep builds fast.
+set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+set(BUILD_GAMES    OFF CACHE BOOL "" FORCE)
+add_subdirectory(external/raylib)
+
+# AniEngine: the animation library under test.
 add_subdirectory(external/AniEngine)
 
+# ---- Demo executable ----
 add_executable(demo src/main.cpp)
-target_link_libraries(demo PRIVATE AniEngine::aniengine)
+target_link_libraries(demo
+    PRIVATE
+        AniEngine::aniengine
+        raylib
+)
