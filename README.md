@@ -1,6 +1,6 @@
-# AniEngineDemo
+# AnimEngineDemo
 
-AniEngineDemo is built on top of [MiaoAnimEngine](https://github.com/WangSimiao2000/MiaoAnimEngine)
+AnimEngineDemo is built on top of [MiaoAnimEngine](https://github.com/WangSimiao2000/MiaoAnimEngine)
 
 Features
 
