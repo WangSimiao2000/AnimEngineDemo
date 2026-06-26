@@ -1,8 +1,10 @@
+#include <cmath>
 #include <cstdio>
 
 #include "raylib.h"
 
 #include "animengine/animengine.h"
+#include "animengine/curve.h"
 
 int main() {
     const int screenWidth = 800;
@@ -18,12 +20,25 @@ int main() {
     camera.fovy = 45.0f;                            // field of view (degrees)
     camera.projection = CAMERA_PERSPECTIVE;
 
-    const Vector3 cubePosition = {0.0f, 0.0f, 0.0f};
+    // A linear back-and-forth (ping-pong) curve driving the cube on the X axis.
+    // Three keyframes form a triangle wave: -3 -> +3 -> -3, all linear. Looping
+    // the time with fmod over the period repeats the round trip indefinitely.
+    animengine::Curve moveX;
+    moveX.addKeyframe(0.0f, -3.0f, animengine::Interpolation::Linear);
+    moveX.addKeyframe(2.0f, 3.0f, animengine::Interpolation::Linear);
+    moveX.addKeyframe(4.0f, -3.0f);  // last keyframe: interp unused
+    const float period = 4.0f;
+
+    Vector3 cubePosition = {0.0f, 0.0f, 0.0f};
 
     SetTargetFPS(60);
 
     // Render loop: runs until the window is closed (ESC or close button).
     while (!WindowShouldClose()) {
+        // Advance the animation: loop elapsed time within the curve's range.
+        const float t = std::fmod(static_cast<float>(GetTime()), period);
+        cubePosition.x = moveX.evaluate(t);
+
         BeginDrawing();
         ClearBackground(RAYWHITE);
 
