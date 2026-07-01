@@ -1,70 +1,135 @@
-#include <cmath>
-#include <cstdio>
+// ============================================================================
+//  AnimEngineDemo — Tween vs Spring
+// ----------------------------------------------------------------------------
+//  Two balls chase the SAME target on the X axis. Press SPACE to flip the
+//  target between left and right and watch how each animation model reacts:
+//
+//    RED  ball  -> Tween  : fixed-duration easing. Re-targeting mid-flight
+//                           has to RESTART the animation (a visible snap).
+//    BLUE ball  -> Spring : physics-based. Re-targeting keeps the current
+//                           velocity and smoothly redirects (no restart).
+//
+//  Everything tagged with the "AnimEngine API" banners below is the library
+//  surface being demonstrated. Everything else is raylib setup / rendering
+//  boilerplate and is intentionally kept out of the way.
+// ============================================================================
 
 #include "raylib.h"
 
-#include "animengine/animengine.h"
-#include "animengine/curve.h"
+#include "animengine/spring.h"
+#include "animengine/tween.h"
 
-struct AnimatedCube {
-    Vector3 position;
-    Color color;
-    animengine::Curve curve;
-};
+using animengine::Easing;
+using animengine::Spring;
+using animengine::Tween;
 
-int main() {
-    const int screenWidth = 800;
-    const int screenHeight = 600;
+// ----------------------------------------------------------------------------
+// Demo configuration (tweak these to change the feel)
+// ----------------------------------------------------------------------------
+namespace {
+constexpr int kScreenWidth = 900;
+constexpr int kScreenHeight = 600;
 
-    InitWindow(screenWidth, screenHeight, "AnimEngine Demo - Easing Functions");
+constexpr float kLeftX = -5.0f;
+constexpr float kRightX = 5.0f;
+constexpr float kBallRadius = 0.6f;
 
+// Tween: how long each move takes, and which easing curve to use.
+constexpr float kTweenDuration = 1.0f;
+constexpr Easing kTweenEasing = Easing::EaseInOut;
+
+// Spring: duration ~ how fast it responds, bounce ~ how springy (0 = no bounce).
+constexpr float kSpringDuration = 0.6f;
+constexpr float kSpringBounce = 0.4f;
+}  // namespace
+
+// ----------------------------------------------------------------------------
+// raylib boilerplate — NOT part of AnimEngine.
+// ----------------------------------------------------------------------------
+static Camera3D makeCamera() {
     Camera3D camera = {0};
-    camera.position = (Vector3){0.0f, 8.0f, 20.0f};
-    camera.target = (Vector3){0.0f, 0.0f, 0.0f};
-    camera.up = (Vector3){0.0f, 1.0f, 0.0f};
+    camera.position = Vector3{0.0f, 6.0f, 16.0f};
+    camera.target = Vector3{0.0f, 1.0f, 0.0f};
+    camera.up = Vector3{0.0f, 1.0f, 0.0f};
     camera.fovy = 45.0f;
     camera.projection = CAMERA_PERSPECTIVE;
+    return camera;
+}
 
-    const float period = 4.0f;
-    const float cubeSize = 1.5f;
-    const float spacing = 3.5f;
-
-    AnimatedCube cubes[6];
-    const char* labels[6] = {"StepStart", "StepEnd", "Linear", "EaseIn", "EaseOut", "EaseInOut"};
-    Color colors[6] = {RED, ORANGE, YELLOW, GREEN, BLUE, PURPLE};
-
-    for (int i = 0; i < 6; i++) {
-        cubes[i].position = {(i - 2.5f) * spacing, 0.0f, 0.0f};
-        cubes[i].color = colors[i];
-        cubes[i].curve.addKeyframe(0.0f, -1.0f, static_cast<animengine::Easing>(i));
-        cubes[i].curve.addKeyframe(2.0f, 1.0f, static_cast<animengine::Easing>(i));
-        cubes[i].curve.addKeyframe(4.0f, -1.0f);
-    }
-
+int main() {
+    // ===== SETUP (boilerplate) ==============================================
+    InitWindow(kScreenWidth, kScreenHeight, "AnimEngine Demo - Tween vs Spring");
     SetTargetFPS(60);
+    const Camera3D camera = makeCamera();
+
+    float target = kRightX;  // the shared destination both balls aim for
+
+    // ┌──────────────────────────────────────────────────────────────────────┐
+    // │  AnimEngine API — create the two animations                            │
+    // └──────────────────────────────────────────────────────────────────────┘
+    // Tween: interpolate from -> to over a fixed duration using an easing curve.
+    Tween tween(kLeftX, target, kTweenDuration, kTweenEasing);
+
+    // Spring: construct at rest at kLeftX, then aim it at the target.
+    Spring spring(kSpringDuration, kSpringBounce, kLeftX);
+    spring.setTarget(target);
+    // ────────────────────────────────────────────────────────────────────────
 
     while (!WindowShouldClose()) {
-        const float t = std::fmod(static_cast<float>(GetTime()), period);
+        const float dt = GetFrameTime();
 
+        // ----- Input: flip the shared target on SPACE (boilerplate) ---------
+        if (IsKeyPressed(KEY_SPACE)) {
+            target = (target == kRightX) ? kLeftX : kRightX;
+
+            // ┌────────────────────────────────────────────────────────────┐
+            // │  AnimEngine API — re-target                                  │
+            // └────────────────────────────────────────────────────────────┘
+            // Tween has no concept of momentum: to chase a new target we must
+            // build a fresh tween starting from the current position.
+            tween = Tween(tween.value(), target, kTweenDuration, kTweenEasing);
+
+            // Spring just changes its target; it keeps its current velocity
+            // and smoothly redirects — no restart.
+            spring.setTarget(target);
+            // ──────────────────────────────────────────────────────────────
+        }
+
+        // ┌──────────────────────────────────────────────────────────────────┐
+        // │  AnimEngine API — advance the animations and read their values     │
+        // └──────────────────────────────────────────────────────────────────┘
+        tween.update(dt);
+        spring.update(dt);
+
+        const float tweenX = tween.value();
+        const float springX = spring.value();
+        // ────────────────────────────────────────────────────────────────────
+
+        // ===== RENDER (boilerplate) ========================================
         BeginDrawing();
         ClearBackground(RAYWHITE);
 
         BeginMode3D(camera);
-        for (int i = 0; i < 6; i++) {
-            float y = cubes[i].curve.evaluate(t);
-            Vector3 pos = {cubes[i].position.x, y, cubes[i].position.z};
-            DrawCube(pos, cubeSize, cubeSize, cubeSize, cubes[i].color);
-            DrawCubeWires(pos, cubeSize, cubeSize, cubeSize, DARKGRAY);
-        }
-        DrawGrid(10, 1.0f);
+        DrawGrid(20, 1.0f);
+
+        // Faint marker showing where the shared target currently is.
+        DrawCube(Vector3{target, 1.0f, 0.0f}, 0.1f, 3.0f, 4.5f, LIGHTGRAY);
+
+        DrawSphere(Vector3{tweenX, 1.0f, -2.0f}, kBallRadius, RED);    // Tween ball
+        DrawSphere(Vector3{springX, 1.0f, 2.0f}, kBallRadius, BLUE);   // Spring ball
         EndMode3D();
 
-        DrawText(TextFormat("Time: %.2f", t), 10, 10, 20, DARKGRAY);
-        for (int i = 0; i < 6; i++) {
-            DrawText(labels[i], 10, 35 + i * 20, 16, cubes[i].color);
-        }
+        // HUD
+        DrawText("Press SPACE to flip the target", 10, 10, 20, DARKGRAY);
+        DrawText(TextFormat("RED  Tween  (EaseInOut, %.1fs)   x = %+.2f", kTweenDuration, tweenX),
+                 10, 42, 18, RED);
+        DrawText(TextFormat("BLUE Spring (bounce %.1f)         x = %+.2f   v = %+.2f",
+                            kSpringBounce, springX, spring.velocity()),
+                 10, 64, 18, BLUE);
+        DrawText("Tween restarts on each flip; Spring keeps its momentum.", 10,
+                 kScreenHeight - 30, 18, DARKGRAY);
 
-        DrawFPS(screenWidth - 90, 10);
+        DrawFPS(kScreenWidth - 90, 10);
         EndDrawing();
     }
 
