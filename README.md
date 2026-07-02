@@ -4,9 +4,17 @@ AnimEngineDemo is built on top of [MiaoAnimEngine](https://github.com/WangSimiao
 
 ## Features
 
-- Camera (3D perspective)
-- Cube rendering
-- Animation preview with easing functions (StepStart, StepEnd, Linear, EaseIn, EaseOut, EaseInOut)
+The demo (`src/main.cpp`) contrasts the two animation models AnimEngine
+provides, using raylib only for visualization:
+
+- **Tween vs Spring, side by side** — two balls chase the same target on the X
+  axis. Press `SPACE` to flip the target and watch how each model reacts.
+  - **RED (Tween)** — fixed-duration easing (`EaseInOut`). Re-targeting
+    mid-flight has to restart the animation, producing a visible snap.
+  - **BLUE (Spring)** — physics-based, interruptible. Re-targeting keeps the
+    current velocity and smoothly redirects, with no restart.
+- 3D perspective camera, grid, and an on-screen HUD showing each ball's
+  position and the spring's live velocity.
 
 ## Building
 
